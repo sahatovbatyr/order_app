@@ -4,6 +4,8 @@ import { Module } from '@nestjs/common';
 import { EnvConfigEnum } from '../../enums/EnvConfigEnum';
 import { User } from '../../entities/user.entity';
 import { Role } from '../../entities/role.entity';
+import { Order } from '../../entities/order.entity';
+import { Payment } from '../../entities/payment.entity';
 
 @Module({
   imports: [
@@ -16,7 +18,7 @@ import { Role } from '../../entities/role.entity';
         password: configService.get(EnvConfigEnum.DB_PASSWORD),
         database: configService.get(EnvConfigEnum.DB_NAME),
         // entities: [__dirname + '/../../**/*.entity{.ts,.js}'],
-        entities: [User, Role],
+        entities: [User, Role, Order, Payment],
         // synchronize: configService.get(EnvConfigEnum.NODE_ENV) !== 'production',
         logging: true,
         synchronize: true,
