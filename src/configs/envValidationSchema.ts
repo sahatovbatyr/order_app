@@ -3,11 +3,11 @@ import { EnvConfigEnum } from '../enums/EnvConfigEnum';
 
 export const envValidationSchema = Joi.object({
   [EnvConfigEnum.HOST_PORT]: Joi.number().default(3000),
-  [EnvConfigEnum.DATABASE_HOST]: Joi.string().required(),
-  [EnvConfigEnum.DATABASE_PORT]: Joi.number().default(5432),
-  [EnvConfigEnum.DATABASE_USERNAME]: Joi.string().required(),
-  [EnvConfigEnum.DATABASE_PASSWORD]: Joi.string().required(),
-  [EnvConfigEnum.DATABASE_NAME]: Joi.string().required(),
+  [EnvConfigEnum.DB_HOST]: Joi.string().required(),
+  [EnvConfigEnum.DB_PORT]: Joi.number().default(5432),
+  [EnvConfigEnum.DB_USERNAME]: Joi.string().required(),
+  [EnvConfigEnum.DB_PASSWORD]: Joi.string().required(),
+  [EnvConfigEnum.DB_NAME]: Joi.string().required(),
   [EnvConfigEnum.REDIS_HOST]: Joi.string().required(),
   [EnvConfigEnum.REDIS_PORT]: Joi.number().default(6379),
   [EnvConfigEnum.JWT_SECRET]: Joi.string().required(),
