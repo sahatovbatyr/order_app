@@ -4,6 +4,11 @@ import { BaseCustomEntity } from '../common/ base/BaseCustomEntity';
 
 @Entity('roles')
 export class Role extends BaseCustomEntity {
+  constructor(title: string) {
+    super();
+    this.title = title;
+  }
+
   @Column({
     type: 'enum',
     nullable: false,
