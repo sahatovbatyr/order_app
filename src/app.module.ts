@@ -5,6 +5,10 @@ import * as process from 'node:process';
 import { ConfigModule } from '@nestjs/config';
 import { envValidationSchema } from './configs/envValidationSchema';
 import { DatabaseModule } from './modules/database/database.module';
+import { RoleModule } from './modules/role/role.module';
+import { PaymentModule } from './modules/payment/payment.module';
+import { OrderModule } from './modules/order/order.module';
+import { UserModule } from './modules/user/user.module';
 
 @Module({
   imports: [
@@ -14,6 +18,10 @@ import { DatabaseModule } from './modules/database/database.module';
       envFilePath: [`.env.${process.env.NODE_ENV}`],
     }),
     DatabaseModule,
+    UserModule,
+    OrderModule,
+    PaymentModule,
+    RoleModule,
   ],
   controllers: [AppController],
   providers: [AppService],
