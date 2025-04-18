@@ -25,5 +25,6 @@ import { EnvConfigEnum } from '../../enums/EnvConfigEnum';
   ],
   controllers: [AuthController],
   providers: [AuthService],
+  exports: [AuthService],
 })
 export class AuthModule {}
