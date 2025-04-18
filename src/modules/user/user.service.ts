@@ -106,4 +106,8 @@ export class UserService extends BaseCustomService<User> {
       await this.userRepository.save(newInitUser);
     }
   }
+
+  async isPasswordValid(unhashedPassword: string, hashedPassword: string) {
+    return await bcrypt.compare(unhashedPassword, hashedPassword);
+  }
 }
