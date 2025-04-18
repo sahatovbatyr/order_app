@@ -26,4 +26,7 @@ export class User extends BaseCustomEntity {
     },
   })
   roles!: Role[];
+
+  @Column({ type: 'varchar', nullable: false })
+  password: string;
 }
