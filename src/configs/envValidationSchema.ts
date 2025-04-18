@@ -11,7 +11,7 @@ export const envValidationSchema = Joi.object({
   [EnvConfigEnum.REDIS_HOST]: Joi.string().required(),
   [EnvConfigEnum.REDIS_PORT]: Joi.number().default(6379),
   [EnvConfigEnum.JWT_SECRET]: Joi.string().required(),
-  [EnvConfigEnum.JWT_EXPIRATION]: Joi.string().default('1h'),
+  [EnvConfigEnum.JWT_ACCESS_EXPIRATION]: Joi.string().default('1h'),
   [EnvConfigEnum.STRIPE_SECRET_KEY]: Joi.string().required(),
   [EnvConfigEnum.STRIPE_WEBHOOK_SECRET]: Joi.string().required(),
   [EnvConfigEnum.ELASTICSEARCH_NODE]: Joi.string().required(),

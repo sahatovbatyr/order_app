@@ -15,7 +15,9 @@ import { EnvConfigEnum } from '../../enums/EnvConfigEnum';
         global: true,
         secret: configService.get<string>(EnvConfigEnum.JWT_SECRET),
         signOptions: {
-          expiresIn: '60m',
+          expiresIn: configService.get<string>(
+            EnvConfigEnum.JWT_ACCESS_EXPIRATION,
+          ),
         },
       }),
       inject: [ConfigService],
