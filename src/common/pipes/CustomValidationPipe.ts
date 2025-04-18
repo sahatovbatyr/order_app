@@ -1,4 +1,3 @@
-import console from 'node:console';
 import {
   ArgumentMetadata,
   BadRequestException,
