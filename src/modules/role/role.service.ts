@@ -22,6 +22,10 @@ export class RoleService extends BaseCustomService<Role> {
     return await this.roleRepository.find({ where: { id: In(roleIdList) } });
   }
 
+  async getRoleByTitle(role: RoleEnum) {
+    return await super.findOneByProp_orThrow('title', role);
+  }
+
   async seed() {
     for (const role of Object.values(RoleEnum)) {
       let candidate = await super.findOneByProp('title', role);

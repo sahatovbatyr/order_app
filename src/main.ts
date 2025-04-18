@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 import { EnvConfigEnum } from './enums/EnvConfigEnum';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { CustomValidationPipe } from './common/pipes/CustomValidationPipe';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -22,6 +23,9 @@ async function bootstrap() {
     configService.get<number>(EnvConfigEnum.HOST_PORT) ?? 3000;
 
   app.setGlobalPrefix('api');
+
+  const validationPipe = new CustomValidationPipe();
+  app.useGlobalPipes(validationPipe);
 
   await app.listen(port);
   console.log(`Server started on port:${port}`);

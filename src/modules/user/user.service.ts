@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RoleService } from '../role/role.service';
 import { RoleEnum } from '../../enums/Role.enum';
+import { UserUpdateRolesDto } from './dto/UserUpdateRolesDto';
 
 @Injectable()
 export class UserService extends BaseCustomService<User> {
@@ -68,5 +69,45 @@ export class UserService extends BaseCustomService<User> {
 
   async findByEmail_orThrow(email: string): Promise<User> {
     return super.findOneByProp_orThrow('email', email);
+  }
+
+  async updateRoles(userDto: Readonly<UserUpdateRolesDto>): Promise<User> {
+    if (userDto.roleIdList.length == 0) {
+      throw new BadRequestException('Specify the users roles!');
+    }
+
+    const user = await super.findById_orThrow(userDto.id);
+    const roles = await this.roleService.getRolesByIdList(userDto.roleIdList);
+
+    if (roles.length != userDto.roleIdList.length) {
+      throw new BadRequestException('Incorrect roles.');
+    }
+
+    user.roles = roles;
+    const res = await this.userRepository.save(user);
+    // this.logger.log(` User id:${userDto.id} roles updated`);
+
+    return res;
+  }
+
+  async seed() {
+    const admin = await super.findOneByProp('username', 'admin');
+    if (!admin) {
+      const newInitUser = new User();
+      newInitUser.username = 'admin';
+      newInitUser.email = 'admin@example.com';
+      newInitUser.is_active = false;
+      const saltOrRounds = 10;
+      newInitUser.password = await bcrypt.hash('admin', saltOrRounds);
+      newInitUser.roles = [
+        await this.roleService.getRoleByTitle(RoleEnum.ADMIN),
+      ];
+
+      await this.userRepository.save(newInitUser);
+    }
+  }
+
+  async isPasswordValid(unhashedPassword: string, hashedPassword: string) {
+    return await bcrypt.compare(unhashedPassword, hashedPassword);
   }
 }

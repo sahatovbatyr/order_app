@@ -17,7 +17,7 @@ export abstract class BaseCustomService<T extends BaseCustomEntity> {
     return this.repository.findOneBy({ id } as FindOptionsWhere<T>);
   }
 
-  async findByIdOrThrow(id: number): Promise<T> {
+  async findById_orThrow(id: number): Promise<T> {
     const entity = await this.findById(id);
     if (!entity) {
       throw new NotFoundException(`Entity with ID ${id} not found`);
@@ -56,17 +56,17 @@ export abstract class BaseCustomService<T extends BaseCustomEntity> {
   }
 
   async update(id: number, entity: Partial<T>): Promise<T> {
-    const existingEntity = await this.findByIdOrThrow(id);
+    const existingEntity = await this.findById_orThrow(id);
     Object.assign(existingEntity, entity);
     return this.repository.save(existingEntity);
   }
 
   async delete(id: number): Promise<void> {
-    const entity = await this.findByIdOrThrow(id);
+    const entity = await this.findById_orThrow(id);
     await this.repository.remove(entity);
   }
 
-  async find(): Promise<T[]> {
+  async findAll(): Promise<T[]> {
     return this.repository.find();
   }
 
