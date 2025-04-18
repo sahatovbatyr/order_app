@@ -1,4 +1,10 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { BaseCustomService } from '../../common/ base/BaseCustomService';
 import { User } from '../../entities/user.entity';
 import { DbTable } from '../../enums/DbTable';
@@ -9,6 +15,8 @@ import { Repository } from 'typeorm';
 import { RoleService } from '../role/role.service';
 import { RoleEnum } from '../../enums/Role.enum';
 import { UserUpdateRolesDto } from './dto/UserUpdateRolesDto';
+import { UserUpdatePasswordDto } from './dto/UserUpdatePasswordDto';
+import { UserUpdateEmailDto } from './dto/UserUpdateEmailDto';
 
 @Injectable()
 export class UserService extends BaseCustomService<User> {
@@ -109,5 +117,54 @@ export class UserService extends BaseCustomService<User> {
 
   async isPasswordValid(unhashedPassword: string, hashedPassword: string) {
     return await bcrypt.compare(unhashedPassword, hashedPassword);
+  }
+
+  async updatePassword(userId: number, userDto: UserUpdatePasswordDto) {
+    if (userDto.newPassword != userDto.newPasswordConfirmation) {
+      throw new BadRequestException('new Password and confirmation not match.');
+    }
+
+    const user = await this.findById_orThrow(userId);
+
+    if (userId != userDto.id || user.username != userDto.username) {
+      throw new UnauthorizedException(
+        'Access Denied. The password can be changed only by the owner.',
+      );
+    }
+
+    const isPasswordValid = await bcrypt.compare(
+      userDto.oldPassword,
+      user.password,
+    );
+
+    if (!isPasswordValid) {
+      throw new NotFoundException('Username or password are not match.');
+    }
+
+    user.password = await bcrypt.hash(userDto.newPassword, 10);
+    await this.save(user);
+    // this.logger.log(`User: ${user.username} password changed.`);
+    return;
+  }
+
+  async updateEmail(
+    userDto: Readonly<UserUpdateEmailDto>,
+    author: string,
+  ): Promise<User> {
+    if (author !== userDto.username) {
+      throw new ForbiddenException(
+        'Access Denied. The email can be changed only by the owner.',
+      );
+    }
+
+    const user = await this.findByUsername_orThrow(userDto.username);
+    const userByEmail = await this.findByEmail(userDto.email);
+
+    if (userByEmail) {
+      throw new BadRequestException(`Email ${userDto.email} already exists.`);
+    }
+    user.email = userDto.email;
+    const res = await this.save(user);
+    return res;
   }
 }
