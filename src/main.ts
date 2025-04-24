@@ -11,10 +11,10 @@ async function bootstrap() {
   const configService = app.get<ConfigService>(ConfigService);
 
   const config = new DocumentBuilder()
-    .setTitle('Cats example')
-    .setDescription('The cats API description')
+    .setTitle('App API')
+    .setDescription('The App API ')
     .setVersion('1.0')
-    .addTag('cats')
+    .addTag('app')
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/doc', app, documentFactory);
