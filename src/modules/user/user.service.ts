@@ -1,8 +1,9 @@
 import {
   BadRequestException,
   ForbiddenException,
+  forwardRef,
+  Inject,
   Injectable,
-  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { BaseCustomService } from '../../common/ base/BaseCustomService';
@@ -17,6 +18,7 @@ import { RoleEnum } from '../../enums/Role.enum';
 import { UserUpdateRolesDto } from './dto/UserUpdateRolesDto';
 import { UserUpdatePasswordDto } from './dto/UserUpdatePasswordDto';
 import { UserUpdateEmailDto } from './dto/UserUpdateEmailDto';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class UserService extends BaseCustomService<User> {
@@ -24,6 +26,8 @@ export class UserService extends BaseCustomService<User> {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly roleService: RoleService,
+    @Inject(forwardRef(() => EmailService))
+    private readonly emailService: EmailService,
   ) {
     super(userRepository, User.name);
   }
@@ -55,12 +59,17 @@ export class UserService extends BaseCustomService<User> {
 
     const saltOrRounds = 10;
     const hash = await bcrypt.hash(userDto.password, saltOrRounds);
-    userDto.password = hash;
 
-    userDto.roles = [
+    const newUser = new User();
+    newUser.is_active = false;
+    newUser.password = hash;
+    newUser.username = userDto.username;
+    newUser.email = userDto.email;
+    newUser.roles = [
       await this.roleService.findOneByProp_orThrow('title', RoleEnum.USER),
     ];
-    return await super.create(userDto);
+
+    return await super.create(newUser);
   }
 
   async findByUsername(username: string): Promise<User | null> {
@@ -119,6 +128,18 @@ export class UserService extends BaseCustomService<User> {
     return await bcrypt.compare(unhashedPassword, hashedPassword);
   }
 
+  async isPasswordValid_orThrow(
+    unhashedPassword: string,
+    hashedPassword: string,
+  ) {
+    const isValid = await bcrypt.compare(unhashedPassword, hashedPassword);
+
+    if (!isValid) {
+      throw new UnauthorizedException('User login or password not match.');
+    }
+    return isValid;
+  }
+
   async updatePassword(userId: number, userDto: UserUpdatePasswordDto) {
     if (userDto.newPassword != userDto.newPasswordConfirmation) {
       throw new BadRequestException('new Password and confirmation not match.');
@@ -132,14 +153,7 @@ export class UserService extends BaseCustomService<User> {
       );
     }
 
-    const isPasswordValid = await bcrypt.compare(
-      userDto.oldPassword,
-      user.password,
-    );
-
-    if (!isPasswordValid) {
-      throw new NotFoundException('Username or password are not match.');
-    }
+    await this.isPasswordValid_orThrow(userDto.oldPassword, user.password);
 
     user.password = await bcrypt.hash(userDto.newPassword, 10);
     await this.save(user);
@@ -158,12 +172,25 @@ export class UserService extends BaseCustomService<User> {
     }
 
     const user = await this.findByUsername_orThrow(userDto.username);
+    if (!(await this.isPasswordValid(userDto.password, user.password))) {
+      throw new UnauthorizedException('User login or password not match.');
+    }
     const userByEmail = await this.findByEmail(userDto.email);
 
     if (userByEmail) {
       throw new BadRequestException(`Email ${userDto.email} already exists.`);
     }
     user.email = userDto.email;
+    const res = await this.save(user);
+    return res;
+  }
+
+  async activateEmail(token: string): Promise<User> {
+    const payload = this.emailService.getPayload(token);
+    const username = payload.username;
+
+    const user = await this.findByUsername_orThrow(username);
+    user.is_active = true;
     const res = await this.save(user);
     return res;
   }
