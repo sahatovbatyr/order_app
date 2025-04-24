@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   forwardRef,
   Inject,
   Injectable,
@@ -13,6 +14,7 @@ import { TokenDto } from './dto/TokenDto';
 import { User } from '../../entities/user.entity';
 import { JwtPayload } from './dto/JwtPayload';
 import { Request } from 'express';
+import { MessageDto } from '../../common/dto/MessageDto';
 
 @Injectable()
 export class AuthService {
@@ -24,10 +26,14 @@ export class AuthService {
 
   async login(userDto: UserLoginDto) {
     const user = await this.verifyUser(userDto);
+
+    if (!user.is_active) {
+      throw new ForbiddenException('Email not verified');
+    }
     return this.generateToken(user);
   }
 
-  async registration(userDto: UserCreateDto): Promise<TokenDto> {
+  async registration(userDto: UserCreateDto): Promise<MessageDto> {
     if (!userDto.username) {
       userDto.username = userDto.email;
     }
@@ -40,9 +46,10 @@ export class AuthService {
       );
     }
 
-    const user = await this.userService.create(userDto);
+    await this.userService.create(userDto);
 
-    return await this.generateToken(user);
+    // return await this.generateToken(user);
+    return new MessageDto('User succesfully created');
   }
 
   private async generateToken(user: User): Promise<TokenDto> {
