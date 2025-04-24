@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  forwardRef,
   Get,
+  Inject,
   Param,
   Post,
   Req,
@@ -22,6 +24,8 @@ import { RolesGuard } from '../../common/guards/RolesGuard';
 import { RoleEnum } from '../../enums/Role.enum';
 import { UserUpdatePasswordDto } from './dto/UserUpdatePasswordDto';
 import { AuthService } from '../auth/auth.service';
+import { UserUpdateEmailDto } from './dto/UserUpdateEmailDto';
+import { EmailService } from '../email/email.service';
 
 @ApiTags('USER')
 @Controller('user')
@@ -29,6 +33,8 @@ export class UserController {
   constructor(
     private readonly userService: UserService,
     private readonly authService: AuthService,
+    @Inject(forwardRef(() => EmailService))
+    private readonly emailService: EmailService,
   ) {}
 
   @Get('hello')
@@ -54,6 +60,8 @@ export class UserController {
     return plainToInstance(UserResponseDto, user);
   }
 
+  @ApiOperation({ summary: 'Get All users' })
+  @ApiResponse({ status: 200, type: [UserResponseDto] })
   @Get('/get-all')
   async findAll(): Promise<UserResponseDto[]> {
     const users: User[] = await this.userService.findAll();
@@ -84,5 +92,23 @@ export class UserController {
     const payload = this.authService.getPayload(req);
     await this.userService.updatePassword(payload.userId, userDto);
     return new MessageDto('Password succesfully updated!');
+  }
+
+  @ApiOperation({ summary: 'Update Users email' })
+  @ApiResponse({ status: 200, type: MessageDto })
+  @Post('/update-email')
+  async updateUserEmail(
+    @Body() userDto: UserUpdateEmailDto,
+  ): Promise<MessageDto> {
+    await this.userService.updateEmail(userDto, userDto.username);
+    return new MessageDto('Email succesfully updated!');
+  }
+
+  @ApiOperation({ summary: 'Users email activate' })
+  @ApiResponse({ status: 200, type: MessageDto })
+  @Get('email-activate/:token')
+  async emailActivate(@Param('token') token: string) {
+    await this.userService.activateEmail(token);
+    return new MessageDto(`Email succesfully activated.`);
   }
 }
