@@ -10,7 +10,7 @@ export class User extends BaseCustomEntity {
   @Column({ type: 'varchar', unique: true, nullable: false })
   email!: string;
 
-  @Column({ type: 'varchar', nullable: false })
+  @Column({ type: 'boolean', nullable: false })
   is_active: boolean;
 
   @ManyToMany(() => Role)
