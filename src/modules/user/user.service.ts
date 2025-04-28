@@ -19,6 +19,7 @@ import { UserUpdateRolesDto } from './dto/UserUpdateRolesDto';
 import { UserUpdatePasswordDto } from './dto/UserUpdatePasswordDto';
 import { UserUpdateEmailDto } from './dto/UserUpdateEmailDto';
 import { EmailService } from '../email/email.service';
+import { CustomLoggerService } from '../logger/logger.service';
 
 @Injectable()
 export class UserService extends BaseCustomService<User> {
@@ -28,8 +29,14 @@ export class UserService extends BaseCustomService<User> {
     private readonly roleService: RoleService,
     @Inject(forwardRef(() => EmailService))
     private readonly emailService: EmailService,
+    @Inject(CustomLoggerService)
+    private logger: CustomLoggerService,
   ) {
+    console.log('**CREATING LOGGER: UserService ***************');
     super(userRepository, User.name);
+
+    this.logger.setContext(UserService.name);
+    console.log(`CREATED ${this.logger.getContext()}`);
   }
 
   protected getRelations(): string[] {
@@ -37,6 +44,7 @@ export class UserService extends BaseCustomService<User> {
   }
 
   public async create(userDto: UserCreateDto): Promise<User> {
+    this.logger.info(`New user creating attempt: ${userDto.username}`);
     if (userDto.password != userDto.password_confirmation) {
       throw new BadRequestException(`Error. Passwords NOT match!`);
     }
@@ -77,6 +85,8 @@ export class UserService extends BaseCustomService<User> {
   }
 
   async findByUsername_orThrow(username: string): Promise<User> {
+    console.log(`findByUsername_orThrow ${this.logger.getContext()}`);
+    this.logger.error(`Wrong username or passwor. username:${username}`);
     return super.findOneByProp_orThrow('username', username);
   }
 
@@ -90,6 +100,7 @@ export class UserService extends BaseCustomService<User> {
 
   async updateRoles(userDto: Readonly<UserUpdateRolesDto>): Promise<User> {
     if (userDto.roleIdList.length == 0) {
+      this.logger.warn(`Incorrect roles list sended: ${userDto.roleIdList}`);
       throw new BadRequestException('Specify the users roles!');
     }
 
@@ -97,6 +108,7 @@ export class UserService extends BaseCustomService<User> {
     const roles = await this.roleService.getRolesByIdList(userDto.roleIdList);
 
     if (roles.length != userDto.roleIdList.length) {
+      this.logger.warn(`Incorrect roles sended: ${userDto.roleIdList}`);
       throw new BadRequestException('Incorrect roles.');
     }
 
@@ -141,6 +153,7 @@ export class UserService extends BaseCustomService<User> {
   }
 
   async updatePassword(userId: number, userDto: UserUpdatePasswordDto) {
+    this.logger.warn(`Password change initiated for user ID ${userId}`);
     if (userDto.newPassword != userDto.newPasswordConfirmation) {
       throw new BadRequestException('new Password and confirmation not match.');
     }
@@ -157,7 +170,7 @@ export class UserService extends BaseCustomService<User> {
 
     user.password = await bcrypt.hash(userDto.newPassword, 10);
     await this.save(user);
-    // this.logger.log(`User: ${user.username} password changed.`);
+    this.logger.info(`Password successfully changed for user ID ${userId}`);
     return;
   }
 
@@ -182,16 +195,21 @@ export class UserService extends BaseCustomService<User> {
     }
     user.email = userDto.email;
     const res = await this.save(user);
+    this.logger.info(
+      `Email changed from ${user.email} to ${userDto.email} by ${author}`,
+    );
     return res;
   }
 
   async activateEmail(token: string): Promise<User> {
+    this.logger.info(`Email activation attempt with token`);
     const payload = this.emailService.getPayload(token);
     const username = payload.username;
 
     const user = await this.findByUsername_orThrow(username);
     user.is_active = true;
     const res = await this.save(user);
+    this.logger.info(`Email activated for user ${username}`);
     return res;
   }
 }
