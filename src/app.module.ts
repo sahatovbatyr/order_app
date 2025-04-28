@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import * as process from 'node:process';
@@ -11,6 +11,8 @@ import { OrderModule } from './modules/order/order.module';
 import { UserModule } from './modules/user/user.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { EmailModule } from './modules/email/email.module';
+import { CustomLoggerModule } from './modules/logger/logger.module';
+import { LoggerMiddleware } from './common/middleware/LoggingMiddleware';
 
 @Module({
   imports: [
@@ -26,8 +28,13 @@ import { EmailModule } from './modules/email/email.module';
     RoleModule,
     AuthModule,
     EmailModule,
+    CustomLoggerModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(LoggerMiddleware).forRoutes('*'); // на все маршруты
+  }
+}
