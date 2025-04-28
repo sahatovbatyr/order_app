@@ -5,9 +5,11 @@ import { UserModule } from '../user/user.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EnvConfigEnum } from '../../enums/EnvConfigEnum';
+import { CustomLoggerModule } from '../logger/logger.module';
 
 @Module({
   imports: [
+    CustomLoggerModule,
     forwardRef(() => UserModule),
     JwtModule.registerAsync({
       imports: [ConfigModule],

@@ -15,6 +15,7 @@ import { User } from '../../entities/user.entity';
 import { JwtPayload } from './dto/JwtPayload';
 import { Request } from 'express';
 import { MessageDto } from '../../common/dto/MessageDto';
+import { CustomLoggerService } from '../logger/logger.service';
 
 @Injectable()
 export class AuthService {
@@ -22,9 +23,14 @@ export class AuthService {
     @Inject(forwardRef(() => UserService))
     private userService: UserService,
     private jwtService: JwtService,
-  ) {}
+    @Inject(CustomLoggerService)
+    private logger: CustomLoggerService,
+  ) {
+    this.logger.setContext(AuthService.name);
+  }
 
   async login(userDto: UserLoginDto) {
+    this.logger.info('Attempt logging', { context: this.logger.getContext() });
     const user = await this.verifyUser(userDto);
 
     if (!user.is_active) {

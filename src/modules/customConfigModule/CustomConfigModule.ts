@@ -1,10 +1,8 @@
-import { ConfigModule } from '@nestjs/config';
 import { CustomConfigService } from './CustomConfigService';
 import { Module } from '@nestjs/common';
 
 @Module({
-  imports: [ConfigModule],
   providers: [CustomConfigService],
-  exports: [CustomConfigService], // 👈 важно!
+  exports: [CustomConfigService],
 })
 export class CustomConfigModule {}

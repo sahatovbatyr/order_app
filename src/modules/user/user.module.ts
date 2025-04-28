@@ -6,6 +6,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../../entities/user.entity';
 import { AuthModule } from '../auth/auth.module';
 import { EmailModule } from '../email/email.module';
+import { CustomLoggerModule } from '../logger/logger.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { EmailModule } from '../email/email.module';
     forwardRef(() => EmailModule),
     TypeOrmModule.forFeature([User]),
     RoleModule,
+    CustomLoggerModule,
   ],
   controllers: [UserController],
   providers: [UserService],
