@@ -1,53 +1,5 @@
-// import { Module } from '@nestjs/common';
-// import { WinstonModule } from 'nest-winston';
-// import * as winston from 'winston';
-// import * as DailyRotateFile from 'winston-daily-rotate-file';
-// import { CustomConfigModule } from '../customConfigModule/CustomConfigModule';
-// import { CustomConfigService } from '../customConfigModule/CustomConfigService';
-// import { WinstonCustomLoggerProvider } from './WinstonCustomLoggerProvider';
-//
-// @Module({
-//   imports: [
-//     WinstonModule.forRootAsync({
-//       imports: [CustomConfigModule],
-//       inject: [CustomConfigService],
-//       useFactory: (config: CustomConfigService) => ({
-//         transports: [
-//           // Консольный транспорт
-//           new winston.transports.Console({
-//             level: 'info',
-//             format: winston.format.combine(
-//               winston.format.timestamp(),
-//               winston.format.ms(),
-//               winston.format.printf(({ level, message, timestamp, ms }) => {
-//                 return `${timestamp} ${level} [${ms}] ${message}`;
-//               }),
-//             ),
-//           }),
-//
-//           // Файловый транспорт с ротацией
-//           new DailyRotateFile({
-//             filename: config.LOGGER_FILE_PATH,
-//             datePattern: 'YYYY-MM-DD',
-//             zippedArchive: config.LOGGER_IS_ZIP_ARCHIVE,
-//             maxSize: config.LOGGER_MAX_SIZE,
-//             maxFiles: config.LOGGER_MAX_FILES,
-//             format: winston.format.combine(
-//               winston.format.timestamp(),
-//               winston.format.json(),
-//             ),
-//           }),
-//         ],
-//       }),
-//     }),
-//   ],
-//   providers: [WinstonCustomLoggerProvider],
-//   exports: [WinstonModule, WinstonCustomLoggerProvider],
-// })
-// export class LoggerModule {}
-
 import { Module } from '@nestjs/common';
-import { WinstonModule } from 'nest-winston';
+import { WINSTON_MODULE_PROVIDER, WinstonModule } from 'nest-winston';
 import { CustomConfigModule } from '../customConfigModule/CustomConfigModule';
 import { CustomConfigService } from '../customConfigModule/CustomConfigService';
 import { winstonConfig } from '../../configs/configWinston';
@@ -59,10 +11,16 @@ import { CustomLoggerService } from './logger.service';
     WinstonModule.forRootAsync({
       imports: [CustomConfigModule],
       inject: [CustomConfigService],
-      useFactory: (config: CustomConfigService) => winstonConfig(config), // Используем конфигурацию
+      useFactory: (config: CustomConfigService) => winstonConfig(config),
     }),
   ],
-  providers: [CustomLoggerService],
-  exports: [CustomLoggerService], // Экспортируем сервис
+  providers: [
+    {
+      provide: CustomLoggerService,
+      useFactory: (logger) => new CustomLoggerService(logger),
+      inject: [WINSTON_MODULE_PROVIDER],
+    },
+  ],
+  exports: [CustomLoggerService],
 })
 export class CustomLoggerModule {}
