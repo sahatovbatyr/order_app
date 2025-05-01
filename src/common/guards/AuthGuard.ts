@@ -5,11 +5,17 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { AuthService } from '../../modules/auth/auth.service';
+import { CustomLoggerService } from '../../modules/logger/logger.service';
+import { ILogMeta } from '../../interfaces/ILogMeta';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(private authService: AuthService) {
-    // this.logger.log('The Guard is activate.');
+  private logMeta: ILogMeta;
+  constructor(
+    private authService: AuthService,
+    private logger: CustomLoggerService,
+  ) {
+    this.logMeta = { context: AuthGuard.name };
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
