@@ -16,21 +16,23 @@ import { JwtPayload } from './dto/JwtPayload';
 import { Request } from 'express';
 import { MessageDto } from '../../common/dto/MessageDto';
 import { CustomLoggerService } from '../logger/logger.service';
+import { ILogMeta } from '../../interfaces/ILogMeta';
 
 @Injectable()
 export class AuthService {
+  // private logger: CustomLoggerService;
+  private logMeta: ILogMeta;
   constructor(
     @Inject(forwardRef(() => UserService))
     private userService: UserService,
     private jwtService: JwtService,
-    @Inject(CustomLoggerService)
-    private logger: CustomLoggerService,
+    private readonly logger: CustomLoggerService,
   ) {
-    this.logger.setContext(AuthService.name);
+    this.logMeta = { context: AuthService.name };
   }
 
   async login(userDto: UserLoginDto) {
-    this.logger.info('Attempt logging', { context: this.logger.getContext() });
+    // this.logger.info('Attempt logging', { context: this.logger.getContext() });
     const user = await this.verifyUser(userDto);
 
     if (!user.is_active) {
@@ -71,7 +73,7 @@ export class AuthService {
   public getPayload(request: Request): JwtPayload {
     const authHeader = request.headers.authorization;
     if (!authHeader) {
-      console.log('Entering throw block...');
+      this.logger.log('Authorization header missing', this.logMeta);
       throw new BadRequestException('Authorization header missing');
     }
 
@@ -101,7 +103,9 @@ export class AuthService {
     let user: User;
 
     if (userDto.username) {
-      user = await this.userService.findByUsername_orThrow(userDto.username);
+      user = await this.userService.findByUsername_orThrow_onLogging(
+        userDto.username,
+      );
     } else if (userDto.email) {
       user = await this.userService.findByEmail_orThrow(userDto.email);
     } else {
@@ -110,14 +114,16 @@ export class AuthService {
 
     const hashed = user.password;
 
-    // this.logger.log("user:", JSON.stringify(user));
-
     const isValid = await this.userService.isPasswordValid(
       userDto.password,
       hashed,
     );
 
     if (!user || !isValid) {
+      this.logger.warn(
+        `Wrong username or password on logging. username:${userDto.username}`,
+        this.logMeta,
+      );
       throw new UnauthorizedException('Error. User or password not match.');
     }
 

@@ -4,22 +4,39 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
+import { CustomLoggerService } from '../../modules/logger/logger.service';
+import { ILogMeta } from '../../interfaces/ILogMeta';
 
 export abstract class BaseCustomService<T extends BaseCustomEntity> {
+  protected logMeta: ILogMeta;
   constructor(
     protected readonly repository: Repository<T>,
     private readonly entityName: string,
-  ) {}
+    protected readonly logger: CustomLoggerService,
+  ) {
+    this.logMeta = { context: this.constructor.name };
+  }
 
   protected abstract getRelations(): string[];
 
   async findById(id: number): Promise<T | null> {
-    return this.repository.findOneBy({ id } as FindOptionsWhere<T>);
+    const res = this.repository.findOneBy({ id } as FindOptionsWhere<T>);
+    if (!res) {
+      this.logger.log(
+        `Entity:${this.entityName} with ID ${id} not found.`,
+        this.logMeta,
+      );
+    }
+    return res;
   }
 
   async findById_orThrow(id: number): Promise<T> {
     const entity = await this.findById(id);
     if (!entity) {
+      this.logger.log(
+        `Entity:${this.entityName} with ID ${id} not found.`,
+        this.logMeta,
+      );
       throw new NotFoundException(`Entity with ID ${id} not found`);
     }
     return entity;
@@ -72,8 +89,14 @@ export abstract class BaseCustomService<T extends BaseCustomEntity> {
 
   protected async save(entity: DeepPartial<T>) {
     try {
-      return await this.repository.save(entity);
+      const result = await this.repository.save(entity);
+      return result;
     } catch (err: any) {
+      this.logger.error(
+        `Error on saving ${this.entityName}`,
+        err,
+        this.logMeta,
+      );
       throw new InternalServerErrorException(`Error in server. ${err.message}`);
     }
   }
