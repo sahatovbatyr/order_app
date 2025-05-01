@@ -1,41 +1,39 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { CustomLoggerService } from '../../modules/logger/logger.service';
+import { ILogMeta } from '../../interfaces/ILogMeta';
+import { AuthService } from '../../modules/auth/auth.service';
 
 @Injectable()
 export class LoggerMiddleware implements NestMiddleware {
-  constructor(private logger: CustomLoggerService) {
-    this.logger.setContext(LoggerMiddleware.name);
-    console.log(`CREATED ${this.logger.getContext()}`);
+  private logMeta: ILogMeta;
+  private username;
+  constructor(
+    private logger: CustomLoggerService,
+    private authService: AuthService,
+  ) {
+    this.logMeta = { context: LoggerMiddleware.name };
   }
 
   use(req: Request, res: Response, next: NextFunction) {
+    this.username = 'Anonymous';
     const { method, originalUrl: url, ip } = req;
-    const userAgent = req.get('user-agent') || '';
 
-    const username = (req as any).user?.username || 'Anonymous';
+    const authHeader = req.headers.authorization;
+
+    if (authHeader) {
+      const payload = this.authService.getPayload(req);
+      this.username = payload?.username || this.username;
+    }
+
+    const userAgent = req.get('user-agent') || '';
     const timestamp = new Date().toISOString();
 
     // Log incoming request
-    this.logger.info(
-      `Request ${timestamp}: [user:${username}] ${method} ${url}`,
-      {
-        // context: LoggerMiddleware.name,
-        timestamp: timestamp,
-        method,
-        url,
-        ip,
-        userAgent,
-        username: username,
-      },
+    this.logger.log(
+      `Request ip:${ip} ${userAgent} [user:${this.username}] ${method} ${url}`,
+      this.logMeta,
     );
-    // {
-    //   context: 'HTTP',
-    //     method,
-    //     url: originalUrl,
-    //   ip,
-    //   userAgent,
-    // }
 
     const start = Date.now();
 
