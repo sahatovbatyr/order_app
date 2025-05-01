@@ -29,14 +29,9 @@ export class UserService extends BaseCustomService<User> {
     private readonly roleService: RoleService,
     @Inject(forwardRef(() => EmailService))
     private readonly emailService: EmailService,
-    @Inject(CustomLoggerService)
-    private logger: CustomLoggerService,
+    logger: CustomLoggerService,
   ) {
-    console.log('**CREATING LOGGER: UserService ***************');
-    super(userRepository, User.name);
-
-    this.logger.setContext(UserService.name);
-    console.log(`CREATED ${this.logger.getContext()}`);
+    super(userRepository, User.name, logger);
   }
 
   protected getRelations(): string[] {
@@ -44,7 +39,10 @@ export class UserService extends BaseCustomService<User> {
   }
 
   public async create(userDto: UserCreateDto): Promise<User> {
-    this.logger.info(`New user creating attempt: ${userDto.username}`);
+    this.logger.log(
+      `New user creating attempt: ${userDto.username}`,
+      this.logMeta,
+    );
     if (userDto.password != userDto.password_confirmation) {
       throw new BadRequestException(`Error. Passwords NOT match!`);
     }
@@ -85,9 +83,24 @@ export class UserService extends BaseCustomService<User> {
   }
 
   async findByUsername_orThrow(username: string): Promise<User> {
-    console.log(`findByUsername_orThrow ${this.logger.getContext()}`);
-    this.logger.error(`Wrong username or passwor. username:${username}`);
     return super.findOneByProp_orThrow('username', username);
+  }
+
+  async findByUsername_onLogging(username: string): Promise<User | null> {
+    const user = await this.findByUsername(username);
+    if (!user) {
+      this.logger.warn(`Wrong username: ${username} on Logging!`, this.logMeta);
+    }
+    return user;
+  }
+
+  async findByUsername_orThrow_onLogging(username: string): Promise<User> {
+    const user = await this.findByUsername_onLogging(username);
+    if (!user) {
+      throw new UnauthorizedException(`Wrong username or password`);
+    }
+
+    return user;
   }
 
   async findByEmail(email: string): Promise<User | null> {
@@ -114,7 +127,7 @@ export class UserService extends BaseCustomService<User> {
 
     user.roles = roles;
     const res = await this.userRepository.save(user);
-    // this.logger.log(` User id:${userDto.id} roles updated`);
+    this.logger.log(` User id:${userDto.id} roles updated`);
 
     return res;
   }
@@ -153,7 +166,7 @@ export class UserService extends BaseCustomService<User> {
   }
 
   async updatePassword(userId: number, userDto: UserUpdatePasswordDto) {
-    this.logger.warn(`Password change initiated for user ID ${userId}`);
+    this.logger.warn(`Password change initiated for user:${userDto.username}`);
     if (userDto.newPassword != userDto.newPasswordConfirmation) {
       throw new BadRequestException('new Password and confirmation not match.');
     }
@@ -170,7 +183,7 @@ export class UserService extends BaseCustomService<User> {
 
     user.password = await bcrypt.hash(userDto.newPassword, 10);
     await this.save(user);
-    this.logger.info(`Password successfully changed for user ID ${userId}`);
+    this.logger.log(`Password successfully changed for user: ${user.username}`);
     return;
   }
 
@@ -186,6 +199,10 @@ export class UserService extends BaseCustomService<User> {
 
     const user = await this.findByUsername_orThrow(userDto.username);
     if (!(await this.isPasswordValid(userDto.password, user.password))) {
+      this.logger.warn(
+        `Wrong password on logging. username:${userDto.username}`,
+        this.logMeta,
+      );
       throw new UnauthorizedException('User login or password not match.');
     }
     const userByEmail = await this.findByEmail(userDto.email);
@@ -195,21 +212,21 @@ export class UserService extends BaseCustomService<User> {
     }
     user.email = userDto.email;
     const res = await this.save(user);
-    this.logger.info(
+    this.logger.log(
       `Email changed from ${user.email} to ${userDto.email} by ${author}`,
     );
     return res;
   }
 
   async activateEmail(token: string): Promise<User> {
-    this.logger.info(`Email activation attempt with token`);
+    this.logger.log(`Email activation attempt with token`);
     const payload = this.emailService.getPayload(token);
     const username = payload.username;
 
     const user = await this.findByUsername_orThrow(username);
     user.is_active = true;
     const res = await this.save(user);
-    this.logger.info(`Email activated for user ${username}`);
+    this.logger.log(`Email activated for user ${username}`);
     return res;
   }
 }
